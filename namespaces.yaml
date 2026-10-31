@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-agent-operator-system
+  labels:
+    app.kubernetes.io/name: devops-agent-operator
+    app.kubernetes.io/part-of: ai-k8s-reliability-security-ops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reliability-lab
+  labels:
+    app.kubernetes.io/part-of: ai-k8s-reliability-security-ops
+    pod-security.kubernetes.io/enforce: baseline

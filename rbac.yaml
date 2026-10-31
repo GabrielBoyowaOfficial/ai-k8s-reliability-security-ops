@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: devops-agent-operator
+  namespace: devops-agent-operator-system
+  labels:
+    app.kubernetes.io/name: devops-agent-operator
+---
+# Cluster-wide READ-ONLY: the controller-runtime cache lists/watches pods and
+# events cluster-wide; namespace filtering (WATCH_NAMESPACES) happens in code.
+# Tighter than the upstream example: no jobs (unused by the code), and the
+# only write verbs live in namespaced Roles below.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: devops-agent-operator-read
+  labels:
+    app.kubernetes.io/name: devops-agent-operator
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list", "watch"]
+  # Node lookup to resolve the EC2 instance ID for SSM.
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: devops-agent-operator-read
+  labels:
+    app.kubernetes.io/name: devops-agent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: devops-agent-operator-read
+subjects:
+  - kind: ServiceAccount
+    name: devops-agent-operator
+    namespace: devops-agent-operator-system
+---
+# Write access ONLY in the watched namespace: annotate pods as processed
+# (dedup) and read their logs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: devops-agent-operator-watched-ns
+  namespace: reliability-lab
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["patch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devops-agent-operator-watched-ns
+  namespace: reliability-lab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: devops-agent-operator-watched-ns
+subjects:
+  - kind: ServiceAccount
+    name: devops-agent-operator
+    namespace: devops-agent-operator-system
+---
+# Leader election lease and its events, in the operator's own namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: devops-agent-operator-leader-election
+  namespace: devops-agent-operator-system
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devops-agent-operator-leader-election
+  namespace: devops-agent-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: devops-agent-operator-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: devops-agent-operator
+    namespace: devops-agent-operator-system

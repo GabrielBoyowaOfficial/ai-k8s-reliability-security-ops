@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars (git-ignored) and edit.
+# This file must contain NO secrets. The DevOps Agent webhook URL/secret are
+# injected into Kubernetes by scripts/configure-webhook.sh, never here.
+
+# REQUIRED: your public IP as a /32. Find it with:  curl -s https://checkip.amazonaws.com
+admin_cidr = "203.0.113.10/32"
+
+# Optional: named AWS CLI profile (omit to use the default credential chain)
+# aws_profile = "my-lab-profile"
+
+# region = "us-west-2"
+
+# Cost levers
+# single_nat_gateway = true
+# node_instance_types = ["t3.medium"]
+# node_desired_size   = 2
+
+# Set AFTER you have created the Agent Space (second `terraform apply`):
+# devops_agent_role_arn = "arn:aws:iam::<account-id>:role/<agent-space-role>"
